@@ -425,7 +425,7 @@ class CodeNames():
 					return
 				for g in guess_list:
 					if g in red:
-						bwc.get(g).configure(bg = 'black')
+						bwc.get(g).configure(highlightbackground = 'black', highlightthickness = 50)
 						red_score += 1
 						red_team.configure(text = "Red: " + str(red_score))
 						num_guesses -= 1
@@ -442,7 +442,7 @@ class CodeNames():
 							break
 
 					elif g in blue:
-						bwc.get(g).configure(bg = 'black')
+						bwc.get(g).configure(highlightbackground = 'black', highlightthickness = 50)
 						blue_score += 1
 						blue_team.configure(text = "Blue: " + str(blue_score))
 						num_guesses -= 1
@@ -458,7 +458,7 @@ class CodeNames():
 							current_turn.configure(text = "It's Blue's turn. Input clue on left and number of guesses on right.")
 							break
 					elif g in neutral:
-						bwc.get(g).configure(bg = 'black')
+						bwc.get(g).configure(highlightbackground = 'black', highlightthickness = 50)
 						neutral.remove(g)
 						if curr_player == 0:
 							current_turn.configure(text = "It's Blue's turn. Input clue on left and number of guesses on right.")
