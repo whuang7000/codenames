@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import tkinter as tk
 
 import gensim
@@ -15,6 +16,13 @@ with open("./words.txt") as f:
     words = f.readlines()
 
 words = [w.strip() for w in words]
+
+"""Generates team word lists and a random game board based on the word lists.
+
+:param word_list: Codenames master word list, generated in block above
+:return: 5x5 numpy board, red team words, blue team words, neutral words, assassin
+:rtype: tuple
+"""
 """Generates team word lists and a random game board based on the word lists.
 
 :param word_list: Codenames master word list, generated in block above
@@ -72,7 +80,7 @@ def generate_board(word_list):
 
 """Guesses the most similar n words out of given words list based on given clue.
 
-Threshold similarity for guessed words must be greater than 0.1
+Threshold similarity for guessed words must be greater than 0.2
 
 :param clue: given clue
 :param words: given list of words to guess from
@@ -90,7 +98,8 @@ def guess(clue, words, n):
 """Verifies that a clue is valid.
 
 A clue (word2) is invalid if either word is a substring of the other, if there is an underscore
-in word2, or if word2 is the plural form of word1. Uses inflect.engine() to check plurality.
+in word2, if word2 is the plural form of word1, or if the length of word2 is less than or equal to 2.
+Uses inflect.engine() to check plurality.
 
 :param word1: a word from the codenames list of words
 :param word2: a model generated clue to be verified
@@ -102,11 +111,11 @@ def clean_clue(word1, word2):
     word2 = word2.lower()
     return not (word1 in word2 or word2 in word1 or "_" in word2 or word2 == engine.plural(word1) or len(word2) <= 2)
 
-"""Gives an optimal clue based on current board state.
+"""Gives an optimal length clue based on current board state.
 
-This function iteratively finds the most correlated two words and generates potential clues related to both.
-Then, it checks if any of the bad words are of greater similarity to the max potential clue than either
-most correlated words.
+This function computes the similarity index between all pairs and triples of words.
+Then, it iteratively computes an optimal clue based on the number of words left
+and the max between the highest pair similarity and the highest triplet similarity.
 
 :param words: list of words to generate a clue for
 :param bad_words: list of words to avoid giving clues for
@@ -114,14 +123,15 @@ most correlated words.
 """
 def give_clue(words, bad_words):
             
-    # Correlate all possible pairs of words and store them in a dict of (word1,word2): similarity
+    # Correlates all possible pairs of words and store them in a dict of (word1,word2):similarity
+    similarities = {}
     if len(words) >= 2:
-        similarities = {}
         for i in range(len(words)):
             for j in range(i + 1, len(words)):
                 similarities[(words[i], words[j])] = model.similarity(words[i], words[j])
-        triple_similarities = {}
     
+    # Correlate all possible triplets of words and store them in a dict of (word1,word2,word3):similarity
+    triple_similarities = {}
     if len(words) >= 3:
         seen = set()
         for w in words:
@@ -131,25 +141,33 @@ def give_clue(words, bad_words):
                     triple_similarities[z] = model.n_similarity([w], list(key))
                     seen.add(tuple(sorted(z)))
     
-    # Loop until we find the optimal pair of words to go for. Shouldn't ever be an infinite loop?
+    # Loop until we find the optimal pair of words to give a clue for.
     while True:
-        # Find highest similarity pair of words
+        # If there is only 1 word left to guess or we run out of pairwise similarities,
+        # set max_correlated_n to only word left
         if len(words) == 1 or not similarities:
             max_correlated_n = (words[0],)
-        elif len(words) >= 2 and similarities:
+        
+        # If length is 2, set max_correlated_n to the max_correlated_pair
+        elif len(words) >= 2:
             max_correlated_pair = max(similarities, key=similarities.get)
             max_correlated_n = max_correlated_pair
-        if len(words) >= 3 and triple_similarities:
+            
+        # If length is 3, set max_correlated_n to:
+        # max_correlated_triple if the triple similarity * 0.9 >= pair similarity
+        # max_correlated_pair otherwise
+        # 0.9 can be tuned based on experimental data
+        if len(words) >= 3:
             max_correlated_triple = max(triple_similarities, key=triple_similarities.get)
             if triple_similarities[max_correlated_triple] * 0.9 >= similarities[max_correlated_pair]:
                 max_correlated_n = max_correlated_triple
             else:
                 max_correlated_n = max_correlated_pair
         
+        print("Giving clue for:", max_correlated_n)
         c_words = list(max_correlated_n)
-        print(c_words)
         
-        # Find most similar words to both words in max_correlated_n
+        # Find most similar words to words in max_correlated_n
         clues = model.most_similar(positive=c_words,topn=10, restrict_vocab=10000)
         
         # Clean the found similar words
@@ -160,6 +178,10 @@ def give_clue(words, bad_words):
         while cleaned_clues:
             # Find best current clue
             possible_clue = max(cleaned_clues, key=lambda x: clues_dict[x])
+            
+            # If game is nearing end, skip filtering of clues
+            if len(words) == len(max_correlated_n):
+                return possible_clue, tuple(max_correlated_n)
 
             # Find most similar word to best current clue from bad_words
             enemy_match = model.most_similar_to_given(possible_clue, bad_words)
@@ -167,13 +189,13 @@ def give_clue(words, bad_words):
             # Calculate similarity between the two
             enemy_sim = model.similarity(enemy_match, possible_clue)
             
-            # If enemy's word is greater in similarity than either of the words in max_correlated_pair,
+            # If enemy's word is greater in similarity than any of the words in max_correlated_pair,
             # remove the best current clue from cleaned_clues and continue iterating.
             # If not, return the current clue, as it is optimal.
             optimal = True
             for n in max_correlated_n:
                 if enemy_sim >= model.similarity(n, possible_clue):
-                    print("Foreign word " + enemy_match + " was too close. Removing " + possible_clue)
+                    print("Foreign word " + enemy_match + " was too similar. Removing clue: " + possible_clue)
                     cleaned_clues.remove(possible_clue)
                     optimal = False
                     break
@@ -182,7 +204,7 @@ def give_clue(words, bad_words):
                 return possible_clue, tuple(max_correlated_n)
             
         # All the enemy's clues were atleast more similar than one of the words in max_correlated_pair,
-        # so pop max_correlated_pair from similarities dict and continue iterating.
+        # so pop max_correlated_n from corresponding similarities dict and continue iterating.
         print("Too many enemy correlations. Removing ", max_correlated_n)
         if len(max_correlated_n) == 2:
             similarities.pop(max_correlated_n) 
@@ -255,7 +277,7 @@ class CodeNames():
 					red_score += 1
 					red.remove(word)
 					num_guesses -= 1
-					bwc.get(word).configure(bg = '#b32400')
+					bwc.get(word).configure(highlightbackground = '#b32400', highlightthickness = 50)
 					red_team.configure(text = "Red: " + str(red_score))
 					current_turn.configure(text = "Red Team has " + str(num_guesses) + " guesses left.")
 					if num_guesses == 0:
@@ -268,7 +290,7 @@ class CodeNames():
 					blue_score += 1
 					blue.remove(word)
 					num_guesses -= 1
-					bwc.get(word).configure(bg = '#0066cc')
+					bwc.get(word).configure(highlightbackground = '#0066cc', highlightthickness = 50)
 					blue_team.configure(text = "Blue: " + str(blue_score))
 					current_turn.configure(text = "Blue Team has " + str(num_guesses) + " guesses left.")
 					if num_guesses == 0:
@@ -280,7 +302,7 @@ class CodeNames():
 				elif word in red and curr_player == 1:
 					red_score += 1
 					red.remove(word)
-					bwc.get(word).configure(bg = '#b32400')
+					bwc.get(word).configure(highlightbackground = '#b32400', highlightthickness = 50)
 					red_team.configure(text = "Red: " + str(red_score))
 					next_clue = give_clue(red, blue + neutral + assassin)
 					num_guesses = len(next_clue[1])
@@ -290,7 +312,7 @@ class CodeNames():
 				elif word in blue and curr_player == 0:
 					blue_score += 1
 					blue.remove(word)
-					bwc.get(word).configure(bg = '#0066cc')
+					bwc.get(word).configure(highlightbackground = '#0066cc', highlightthickness = 50)
 					blue_team.configure(text = "Blue: " + str(blue_score))
 					next_clue = give_clue(blue, red + neutral + assassin)
 					num_guesses = len(next_clue[1])
@@ -299,7 +321,7 @@ class CodeNames():
 					current_hint.configure(text = "Clue is " + next_clue[0])
 				elif word in assassin:
 					print("Game Over! You picked the assassin word. Player", 1 - curr_player, "wins!")
-					bwc.get(word).configure(bg = 'black')
+					bwc.get(word).configure(highlightbackground = 'black', highlightthickness = 50)
 					victory(0)
 				else: #neutral case
 					neutral.remove(word)
@@ -315,7 +337,7 @@ class CodeNames():
 						current_turn.configure(text = "You guessed a neutral word! It's Red Team's turn with " + str(num_guesses) + " guesses remaining.")
 						current_hint.configure(text = "Clue is " + next_clue[0])
 					curr_player = 1 - curr_player
-					bwc.get(word).configure(bg = '#bfbfbf')
+					bwc.get(word).configure(highlightbackground = '#bfbfbf', highlightthickness = 50)
 				if red_score == 9:
 					victory(red_score)
 					current_hint.configure(text = "Congratulations! Red Team Wins!")
@@ -343,7 +365,7 @@ class CodeNames():
 			for i in range(5):
 				for j in range(5):
 					s = board[i][j]
-					game_button = tk.Button(game_state, text = board[i][j], bg = 'white', font = ('Courier New', 10), command = lambda v=s: button_action(v))
+					game_button = tk.Button(game_state, text = board[i][j], highlightbackground = 'white', highlightthickness = 50, font = ('Courier New', 10), command = lambda v=s: button_action(v))
 					game_button.place(relx = i/5, rely = j/5, relwidth = 0.2, relheight = 0.2)
 					bwc[board[i][j]] = game_button
 			def victory(score):
@@ -484,13 +506,13 @@ class CodeNames():
 			for i in range(5):
 				for j in range(5):
 					if board[i][j] in red:
-						game_button = tk.Button(game_state, text = board[i][j], bg = '#b32400', font = ('Courier New', 10))
+						game_button = tk.Button(game_state, text = board[i][j], highlightbackground = '#b32400', font = ('Courier New', 10), highlightthickness=50)
 					elif board[i][j] in blue:
-						game_button = tk.Button(game_state, text = board[i][j], bg = '#0066cc', font = ('Courier New', 10))
+						game_button = tk.Button(game_state, text = board[i][j], highlightbackground = '#0066cc', font = ('Courier New', 10), highlightthickness=50)
 					elif board[i][j] in neutral:
-						game_button = tk.Button(game_state, text = board[i][j], bg = '#bfbfbf', font = ('Courier New', 10))
+						game_button = tk.Button(game_state, text = board[i][j], highlightbackground = '#bfbfbf', font = ('Courier New', 10), highlightthickness=50)
 					else:
-						game_button = tk.Button(game_state, text = board[i][j], bg = '#404040', font = ('Courier New', 10))
+						game_button = tk.Button(game_state, text = board[i][j], highlightbackground = '#404040', font = ('Courier New', 10), highlightthickness=50)
 					game_button.place(relx = i/5, rely = j/5, relwidth = 0.2, relheight = 0.2)
 					bwc[board[i][j]] = game_button
 
@@ -538,5 +560,3 @@ class CodeNames():
 		
 		self.root.mainloop()
 app = CodeNames()
-
-
