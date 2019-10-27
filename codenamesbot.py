@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import tkinter as tk
 
 import gensim
