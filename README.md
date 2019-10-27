@@ -19,5 +19,5 @@ To run the program, run `python codenamesbot.py`
 
 Due to limitations of tkinter on MacOS, we strongly recommend the use of Windows in running this program, as our UI choices were designed in a Windows environment.
 
-## Examples
 ![](spymaster.png)
+
