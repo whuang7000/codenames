@@ -6,14 +6,13 @@ This is a Codenames bot made by William Huang, Jonathan Sham, Michael Li, and Fr
 
 The following packages are required for running this program. We apologize in advance for not using Piplock.
 Required Commands:<br/>
-pip install gensim<br/> 
-pip install inflect\
+```
+pip install gensim
+pip install inflect
 pip install numpy
+```
 
 
 You must also install Google's News DataSetGoogleNews at https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?fbclid=IwAR2cGOoPhXxpTx0GSKLOp8xCbAVFWXcofbZ16NSeyZZ9rD0AOmFXr8M95bU
 
 To run the program, run `python codenamesbot.py`
-
-## Example 
- 
