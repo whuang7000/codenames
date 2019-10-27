@@ -17,7 +17,7 @@ You must also install Google's News DataSetGoogleNews at https://drive.google.co
 
 To run the program, run `python codenamesbot.py`
 
-Due to limitations of tkinter on MacOS, we strongly recommend the use of Windows in running this program, as our UI choices were designed in a Windows environment.
+Due to limitations of tkinter on MacOS, we recommend the use of Windows in running this program, as our UI choices were designed in a Windows environment. Nevertheless, our program will still run smoothly on MacOS.
 
 ![](spymaster.png)
 
