@@ -1,6 +1,6 @@
 # Codenames Bot
 
-This is a Codenames bot made by William Huang, Jonathan Sham, Michael Li, and Franklin Chian. It utilizes a pre-trained, deep learning ML word embedding model to predict relationships between words on the Codenames board. The bot can either give hints to the 2 users playing the game, or guess words from the board after being given hints from the user.
+This is a Codenames bot made by William Huang, Jonathan Sham, Michael Li, and Franklin Chian. It utilizes a pre-trained, deep learning word embedding model to predict relationships between words on the Codenames board. The bot can either give hints to the 2 users playing the game, or guess words from the board after being given hints from the user.
 
 ## Usage
 
